@@ -1,19 +1,22 @@
-import { Play, Pause, Zap, Gauge, RotateCcw } from 'lucide-react';
+import { Play, Pause, Zap, Gauge, Shuffle, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SimControlsProps {
   running: boolean;
   speed: number;
   tick: number;
+  aiEnabled: boolean;
   onStart: () => void;
   onPause: () => void;
   onSetSpeed: (s: number) => void;
   onInjectFailure: () => void;
+  onRandomize: () => void;
+  onToggleAI: () => void;
 }
 
-export function SimControls({ running, speed, tick, onStart, onPause, onSetSpeed, onInjectFailure }: SimControlsProps) {
+export function SimControls({ running, speed, tick, aiEnabled, onStart, onPause, onSetSpeed, onInjectFailure, onRandomize, onToggleAI }: SimControlsProps) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 flex-wrap">
       <Button
         size="sm"
         variant={running ? "secondary" : "default"}
@@ -37,14 +40,22 @@ export function SimControls({ running, speed, tick, onStart, onPause, onSetSpeed
         ))}
       </div>
 
+      <Button size="sm" variant="destructive" onClick={onInjectFailure} className="font-mono text-xs gap-1.5">
+        <Zap className="w-3.5 h-3.5" />INJECT FAILURE
+      </Button>
+
+      <Button size="sm" variant="secondary" onClick={onRandomize} className="font-mono text-xs gap-1.5">
+        <Shuffle className="w-3.5 h-3.5" />RANDOMIZE
+      </Button>
+
       <Button
         size="sm"
-        variant="destructive"
-        onClick={onInjectFailure}
-        className="font-mono text-xs gap-1.5"
+        variant={aiEnabled ? "default" : "secondary"}
+        onClick={onToggleAI}
+        className={`font-mono text-xs gap-1.5 ${aiEnabled ? 'glow-primary' : ''}`}
       >
-        <Zap className="w-3.5 h-3.5" />
-        INJECT FAILURE
+        <Brain className="w-3.5 h-3.5" />
+        AI {aiEnabled ? 'ON' : 'OFF'}
       </Button>
 
       <span className="text-xs font-mono text-muted-foreground ml-auto">

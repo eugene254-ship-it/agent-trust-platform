@@ -1,5 +1,5 @@
 import type { Decision } from '@/types/simulation';
-import { ChevronRight, AlertTriangle, Zap, Clock } from 'lucide-react';
+import { ChevronRight, AlertTriangle, Zap, Clock, Brain } from 'lucide-react';
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
   low: { bg: 'bg-muted/50', text: 'text-muted-foreground', dot: 'bg-muted-foreground' },
@@ -25,15 +25,18 @@ export function DecisionFeed({ decisions }: DecisionFeedProps) {
         return (
           <div
             key={dec.id}
-            className={`rounded-md border border-border/50 p-2.5 ${style.bg} ${i === 0 ? 'animate-slide-in' : ''}`}
+            className={`rounded-md border p-2.5 ${i === 0 ? 'animate-slide-in' : ''} ${
+              dec.aiGenerated ? 'border-primary/30 bg-primary/5' : `border-border/50 ${style.bg}`
+            }`}
           >
             <div className="flex items-start gap-2">
-              <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${style.dot}`} />
+              <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${dec.aiGenerated ? 'bg-primary' : style.dot}`} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
+                  {dec.aiGenerated && <Brain className="w-3 h-3 text-primary" />}
                   <span className="text-xs font-mono font-semibold text-primary">{dec.agentName}</span>
                   <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                  <span className={`text-xs font-mono font-medium ${style.text} truncate`}>
+                  <span className={`text-xs font-mono font-medium ${dec.aiGenerated ? 'text-primary' : style.text} truncate`}>
                     {dec.action}
                   </span>
                 </div>
