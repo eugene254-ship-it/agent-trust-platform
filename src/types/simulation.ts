@@ -9,7 +9,7 @@ export type CellType = 'floor' | 'wall' | 'thermal_zone' | 'hazard' | 'energy_un
 
 export interface FacilityCell {
   type: CellType;
-  temperature: number; // 0-100
+  temperature: number;
   blocked: boolean;
   degraded: boolean;
 }
@@ -21,12 +21,12 @@ export interface AgentState {
   name: string;
   role: AgentRole;
   position: Position;
-  energy: number; // 0-100
-  health: number; // 0-100
+  energy: number;
+  health: number;
   status: 'idle' | 'moving' | 'working' | 'recovering' | 'critical';
   currentTask: string | null;
-  sensorAccuracy: number; // 0-1
-  componentWear: number; // 0-100
+  sensorAccuracy: number;
+  componentWear: number;
 }
 
 export interface Decision {
@@ -42,6 +42,7 @@ export interface Decision {
   riskDelta: number;
   explanation: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
+  aiGenerated?: boolean;
 }
 
 export interface SimMetrics {
@@ -74,4 +75,33 @@ export interface SimulationState {
   metrics: SimMetrics;
   failures: FailureEvent[];
   activeFailures: number;
+}
+
+// Snapshot for replay
+export interface SimSnapshot {
+  tick: number;
+  timestamp: number;
+  agents: AgentState[];
+  metrics: SimMetrics;
+  activeFailures: number;
+  decisionCount: number;
+}
+
+export interface ReplaySession {
+  id: string;
+  startTime: number;
+  endTime: number;
+  snapshots: SimSnapshot[];
+  finalMetrics: SimMetrics;
+  totalDecisions: number;
+  totalFailures: number;
+  score: number;
+}
+
+// Agent inspector types
+export interface EnergyDataPoint {
+  tick: number;
+  energy: number;
+  health: number;
+  sensorAccuracy: number;
 }

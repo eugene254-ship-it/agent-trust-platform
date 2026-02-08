@@ -1,0 +1,4 @@
+project_id = "tslstokzfyoeeoluhhnx"
+
+[functions.agent-decision]
+verify_jwt = false
