@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSimulation } from '@/hooks/useSimulation';
 import { useReplay } from '@/hooks/useReplay';
+import { useCoordination } from '@/hooks/useCoordination';
 import { FacilityMap } from '@/components/FacilityMap';
 import { AgentCard } from '@/components/AgentCard';
 import { DecisionFeed } from '@/components/DecisionFeed';
@@ -9,11 +10,13 @@ import { FailureLog } from '@/components/FailureLog';
 import { SimControls } from '@/components/SimControls';
 import { AgentInspector } from '@/components/AgentInspector';
 import { ReplayPanel } from '@/components/ReplayPanel';
+import { CoordinationPanel } from '@/components/CoordinationPanel';
 import { Shield, Radio } from 'lucide-react';
 
 const Index = () => {
   const { state, start, pause, setSpeed, injectFailure, randomize, aiEnabled, setAiEnabled, energyHistory } = useSimulation();
   const replay = useReplay();
+  const coordination = useCoordination();
   const [inspectedAgentId, setInspectedAgentId] = useState<string | null>(null);
 
   // Record snapshots while recording
@@ -22,6 +25,13 @@ const Index = () => {
       replay.recordSnapshot(state);
     }
   }, [state.tick]);
+
+  // Coordination engine
+  useEffect(() => {
+    if (!state.running || !coordination.enabled) return;
+    const delegation = coordination.evaluateDelegation(state.agents, state.tick);
+    if (delegation) coordination.addDelegation(delegation);
+  }, [state.tick, state.running, coordination.enabled]);
 
   const inspectedAgent = inspectedAgentId ? state.agents.find(a => a.id === inspectedAgentId) : null;
 
@@ -34,17 +44,17 @@ const Index = () => {
       <div className="fixed inset-0 scanline pointer-events-none z-50" />
 
       {/* Header */}
-      <header className="border-b border-border px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="border-b border-border px-3 sm:px-4 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Shield className="w-5 h-5 text-primary" />
-          <h1 className="font-mono font-bold text-sm tracking-widest text-primary text-glow-primary">
+          <h1 className="font-mono font-bold text-xs sm:text-sm tracking-widest text-primary text-glow-primary">
             SANCTUM-SIM
           </h1>
-          <span className="text-xs font-mono text-muted-foreground">
+          <span className="text-xs font-mono text-muted-foreground hidden sm:inline">
             v1.0.0 — Governed Autonomy Platform
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {aiEnabled && (
             <span className="text-xs font-mono text-primary animate-pulse-glow">AI ACTIVE</span>
           )}
@@ -56,7 +66,7 @@ const Index = () => {
       </header>
 
       {/* Controls */}
-      <div className="border-b border-border px-4 py-2">
+      <div className="border-b border-border px-3 sm:px-4 py-2">
         <SimControls
           running={state.running}
           speed={state.speed}
@@ -71,15 +81,17 @@ const Index = () => {
         />
       </div>
 
-      {/* Main layout */}
-      <div className="grid grid-cols-[1fr_340px] gap-0 h-[calc(100vh-88px)]">
+      {/* Main layout — responsive */}
+      <div className="flex flex-col lg:grid lg:grid-cols-[1fr_340px] gap-0 lg:h-[calc(100vh-88px)]">
         {/* Left column */}
-        <div className="flex flex-col border-r border-border overflow-hidden">
+        <div className="flex flex-col lg:border-r border-border overflow-hidden">
           <div className="p-3 border-b border-border">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Facility Overview</span>
             </div>
-            <FacilityMap facility={state.facility} agents={state.agents} />
+            <div className="overflow-x-auto">
+              <FacilityMap facility={state.facility} agents={state.agents} />
+            </div>
           </div>
 
           <div className="p-3 border-b border-border">
@@ -90,20 +102,32 @@ const Index = () => {
             <MetricsPanel metrics={state.metrics} activeFailures={state.activeFailures} />
           </div>
 
-          {/* Agent cards + Replay */}
+          {/* Agent cards + Coordination + Replay */}
           <div className="p-3 flex-1 overflow-auto space-y-3">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Agent Status</span>
-                <span className="text-xs font-mono text-muted-foreground ml-auto">Click to inspect</span>
+                <span className="text-xs font-mono text-muted-foreground ml-auto hidden sm:inline">Click to inspect</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {state.agents.map(agent => (
                   <div key={agent.id} onClick={() => setInspectedAgentId(agent.id)} className="cursor-pointer hover:ring-1 hover:ring-primary/50 rounded-lg transition-all">
                     <AgentCard agent={agent} />
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Coordination panel */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Multi-Agent Coordination</span>
+              </div>
+              <CoordinationPanel
+                delegations={coordination.delegations}
+                enabled={coordination.enabled}
+                onToggle={() => coordination.setEnabled(!coordination.enabled)}
+              />
             </div>
 
             {/* Replay panel */}
@@ -130,7 +154,7 @@ const Index = () => {
 
         {/* Right column */}
         <div className="flex flex-col overflow-hidden">
-          <div className="flex-1 p-3 overflow-hidden flex flex-col">
+          <div className="flex-1 p-3 overflow-hidden flex flex-col min-h-[300px]">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Decision Feed</span>
               <span className="text-xs font-mono text-primary ml-auto">Explainable Autonomy</span>

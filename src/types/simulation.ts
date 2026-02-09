@@ -105,3 +105,19 @@ export interface EnergyDataPoint {
   health: number;
   sensorAccuracy: number;
 }
+
+// Multi-agent coordination
+export interface DelegationEvent {
+  id: string;
+  tick: number;
+  timestamp: number;
+  fromAgentId: string;
+  fromAgentName: string;
+  toAgentId: string;
+  toAgentName: string;
+  task: string;
+  reason: string;
+  proximityDist: number;
+  capabilityScore: number;
+  accepted: boolean;
+}

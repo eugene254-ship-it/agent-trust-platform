@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      replay_sessions: {
+        Row: {
+          created_at: string
+          end_time: number
+          final_metrics: Json
+          id: string
+          score: number
+          session_id: string
+          snapshots: Json
+          start_time: number
+          total_decisions: number
+          total_failures: number
+        }
+        Insert: {
+          created_at?: string
+          end_time: number
+          final_metrics?: Json
+          id?: string
+          score?: number
+          session_id: string
+          snapshots?: Json
+          start_time: number
+          total_decisions?: number
+          total_failures?: number
+        }
+        Update: {
+          created_at?: string
+          end_time?: number
+          final_metrics?: Json
+          id?: string
+          score?: number
+          session_id?: string
+          snapshots?: Json
+          start_time?: number
+          total_decisions?: number
+          total_failures?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

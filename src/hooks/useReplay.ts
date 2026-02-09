@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import type { SimSnapshot, ReplaySession, SimulationState } from '@/types/simulation';
 
 function calculateScore(session: Omit<ReplaySession, 'score'>): number {
@@ -23,6 +24,34 @@ export function useReplay() {
   const failureCountRef = useRef(0);
   const replayTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Load sessions from DB on mount
+  useEffect(() => {
+    loadSessions();
+  }, []);
+
+  const loadSessions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('replay_sessions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) { console.warn('Failed to load sessions:', error); return; }
+      if (data) {
+        setSessions(data.map((row: any) => ({
+          id: row.session_id,
+          startTime: Number(row.start_time),
+          endTime: Number(row.end_time),
+          snapshots: row.snapshots as SimSnapshot[],
+          finalMetrics: row.final_metrics as any,
+          totalDecisions: row.total_decisions,
+          totalFailures: row.total_failures,
+          score: row.score,
+        })));
+      }
+    } catch (e) { console.warn('Load sessions error:', e); }
+  };
+
   const startRecording = useCallback(() => {
     snapshotsRef.current = [];
     startTimeRef.current = Date.now();
@@ -32,7 +61,6 @@ export function useReplay() {
 
   const recordSnapshot = useCallback((state: SimulationState) => {
     if (!isRecording) return;
-    // Record every 5 ticks to keep it manageable
     if (state.tick % 5 !== 0) return;
     snapshotsRef.current.push({
       tick: state.tick,
@@ -45,12 +73,13 @@ export function useReplay() {
     failureCountRef.current = state.metrics.failuresHandled;
   }, [isRecording]);
 
-  const stopRecording = useCallback((finalState: SimulationState) => {
+  const stopRecording = useCallback(async (finalState: SimulationState) => {
     setIsRecording(false);
     if (snapshotsRef.current.length === 0) return;
 
+    const sessionId = `session-${Date.now()}`;
     const partial = {
-      id: `session-${Date.now()}`,
+      id: sessionId,
       startTime: startTimeRef.current,
       endTime: Date.now(),
       snapshots: [...snapshotsRef.current],
@@ -60,7 +89,22 @@ export function useReplay() {
       score: 0,
     };
     partial.score = calculateScore(partial);
-    setSessions(prev => [partial as ReplaySession, ...prev].slice(0, 10));
+    const session = partial as ReplaySession;
+    setSessions(prev => [session, ...prev].slice(0, 10));
+
+    // Persist to DB
+    try {
+      await supabase.from('replay_sessions').insert({
+        session_id: session.id,
+        score: session.score,
+        start_time: session.startTime,
+        end_time: session.endTime,
+        total_decisions: session.totalDecisions,
+        total_failures: session.totalFailures,
+        final_metrics: session.finalMetrics as any,
+        snapshots: session.snapshots as any,
+      });
+    } catch (e) { console.warn('Failed to save session:', e); }
   }, []);
 
   const startReplay = useCallback((session: ReplaySession) => {
@@ -81,6 +125,13 @@ export function useReplay() {
     setReplayIndex(Math.max(0, Math.min(index, replaySession.snapshots.length - 1)));
   }, [replaySession]);
 
+  const deleteSession = useCallback(async (sessionId: string) => {
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    try {
+      await supabase.from('replay_sessions').delete().eq('session_id', sessionId);
+    } catch (e) { console.warn('Failed to delete session:', e); }
+  }, []);
+
   const currentSnapshot = replaySession?.snapshots[replayIndex] ?? null;
 
   return {
@@ -96,5 +147,6 @@ export function useReplay() {
     startReplay,
     stopReplay,
     seekReplay,
+    deleteSession,
   };
 }
