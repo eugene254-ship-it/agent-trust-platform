@@ -11,7 +11,8 @@ import { SimControls } from '@/components/SimControls';
 import { AgentInspector } from '@/components/AgentInspector';
 import { ReplayPanel } from '@/components/ReplayPanel';
 import { CoordinationPanel } from '@/components/CoordinationPanel';
-import { Shield, Radio } from 'lucide-react';
+import { Shield, Radio, Trophy } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Index = () => {
   const { state, start, pause, setSpeed, injectFailure, randomize, aiEnabled, setAiEnabled, energyHistory } = useSimulation();
@@ -58,6 +59,10 @@ const Index = () => {
           {aiEnabled && (
             <span className="text-xs font-mono text-primary animate-pulse-glow">AI ACTIVE</span>
           )}
+          <Link to="/leaderboard" className="flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-accent transition-colors">
+            <Trophy className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">LEADERBOARD</span>
+          </Link>
           <Radio className={`w-3.5 h-3.5 ${state.running ? 'text-success animate-pulse-glow' : 'text-muted-foreground'}`} />
           <span className={`text-xs font-mono ${state.running ? 'text-success' : 'text-muted-foreground'}`}>
             {replay.isReplaying ? 'REPLAY' : state.running ? 'LIVE' : 'STANDBY'}
